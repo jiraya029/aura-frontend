@@ -793,8 +793,17 @@ async function toggleMic(){
       sendMessage();
     }
   };
-  recognition.onerror = () => { stopListening(); };
-  recognition.onend = () => { if(listening){ stopListening(); } };
+ recognition.onerror = (event) => {
+  console.error('Speech recognition error:', event.error);
+  addBubble('assistant', 'Mic error: ' + event.error);
+  stopListening();
+};
+  recognition.onend = () => {
+  if(listening){
+    addBubble('assistant', 'Mic ended without detecting speech (onend fired, no error).');
+    stopListening();
+  }
+};
 
   recognition.start();
 }
