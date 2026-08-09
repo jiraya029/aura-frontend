@@ -142,7 +142,7 @@
   @keyframes haloSpin{ to{ transform: rotate(360deg); } }
 
   /* ---------- Main app screen ---------- */
-  #appScreen{ width:100%; flex-direction:column; }
+  #appScreen{ width:100%; flex-direction:column; height:100vh; overflow:hidden; }
   .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 26px; border-bottom:1px solid var(--border-soft); background:rgba(23,15,33,0.6); backdrop-filter:blur(10px); position:sticky; top:0; z-index:5; }
   .topbar-brand{ display:flex; align-items:center; gap:10px; }
   .topbar-brand .dot{ width:9px; height:9px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent); }
@@ -158,7 +158,7 @@
   .ghost-btn.on{ color:var(--text); border-color:var(--accent); background:rgba(201,166,255,0.08); }
   .ghost-btn svg{ width:14px; height:14px; }
 
-  .main-grid{ flex:1; display:grid; grid-template-columns: 1fr; min-height:0; transition: grid-template-columns .28s ease; }
+  .main-grid{ flex:1; display:grid; grid-template-columns: 1fr; min-height:0; overflow:hidden; transition: grid-template-columns .28s ease; }
   .main-grid.chat-open{ grid-template-columns: 360px 1fr; }
   @media (max-width: 880px){
     .main-grid.chat-open{ grid-template-columns: 1fr; grid-template-rows:auto 1fr; }
