@@ -364,7 +364,7 @@
    ============================================================ */
 
 // Point this at your backend (see /backend/README.md). Defaults to local dev.
-const API_BASE = (window.AURA_API_BASE) || 'https://aura-backend.bonto.run/api';
+const API_BASE = (window.AURA_API_BASE) || 'https://aura-backend-production-14ab.up.railway.app/api';
 document.addEventListener('DOMContentLoaded', () => {
   const label = document.getElementById('apiBaseLabel');
   if(label) label.textContent = API_BASE;
