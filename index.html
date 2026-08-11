@@ -124,7 +124,12 @@
   #buildStatus.fade{ animation: fadeUp .5s ease both; }
   @keyframes fadeUp{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
 
-  .build-el{ transform-origin:100px 100px; }
+  .build-el{ transform-origin:100px 110px; }
+  .avatar-eye{ transform-origin:center; transform-box:fill-box; animation: blink 5.5s ease-in-out infinite; }
+  .avatar-eye:nth-of-type(2){ animation-delay: 0.05s; }
+  @keyframes blink{ 0%,94%,100%{ transform:scaleY(1); } 97%{ transform:scaleY(0.12); } }
+  .presence-ring.mode-thinking{ animation: thinkSway 2.4s ease-in-out infinite; transform-origin:100px 110px; }
+  @keyframes thinkSway{ 0%,100%{ transform:rotate(0deg); } 50%{ transform:rotate(1.5deg); } }
   .build-el.assembling{
     animation: assembleIn .85s cubic-bezier(.16,1,.32,1) both;
   }
@@ -134,7 +139,7 @@
     100%{ opacity:1; transform: translate(0,0) scale(1) rotate(0deg); }
   }
   .shockwave{
-    fill:none; stroke:var(--accent); stroke-width:2; opacity:0.9; transform-origin:100px 100px;
+    fill:none; stroke:var(--accent); stroke-width:2; opacity:0.9; transform-origin:100px 110px;
     animation: shock 1.1s cubic-bezier(.2,.7,.3,1) both;
   }
   @keyframes shock{ 0%{ r:8; opacity:0.9; } 100%{ r:150; opacity:0; } }
@@ -142,7 +147,7 @@
   @keyframes haloSpin{ to{ transform: rotate(360deg); } }
 
   /* ---------- Main app screen ---------- */
-  #appScreen{ width:100%; flex-direction:column; height:100vh; overflow:hidden; }
+  #appScreen{ width:100%; flex-direction:column; }
   .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 26px; border-bottom:1px solid var(--border-soft); background:rgba(23,15,33,0.6); backdrop-filter:blur(10px); position:sticky; top:0; z-index:5; }
   .topbar-brand{ display:flex; align-items:center; gap:10px; }
   .topbar-brand .dot{ width:9px; height:9px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent); }
@@ -158,7 +163,7 @@
   .ghost-btn.on{ color:var(--text); border-color:var(--accent); background:rgba(201,166,255,0.08); }
   .ghost-btn svg{ width:14px; height:14px; }
 
-  .main-grid{ flex:1; display:grid; grid-template-columns: 1fr; min-height:0; overflow:hidden; transition: grid-template-columns .28s ease; }
+  .main-grid{ flex:1; display:grid; grid-template-columns: 1fr; min-height:0; transition: grid-template-columns .28s ease; }
   .main-grid.chat-open{ grid-template-columns: 360px 1fr; }
   @media (max-width: 880px){
     .main-grid.chat-open{ grid-template-columns: 1fr; grid-template-rows:auto 1fr; }
@@ -182,7 +187,7 @@
   .link-btn:hover{ color:var(--text-muted); }
 
   /* Conversation column */
-  .convo{ display:none; flex-direction:column; min-height:0; height:100%; overflow:hidden; }
+  .convo{ display:none; flex-direction:column; min-height:0; }
   .main-grid.chat-open .convo{ display:flex; }
   .transcript{ flex:1; overflow-y:auto; padding:26px 28px; display:flex; flex-direction:column; gap:16px; }
   .transcript::-webkit-scrollbar{ width:8px; }
@@ -225,9 +230,6 @@
   }
   :focus-visible{ outline:2px solid var(--violet); outline-offset:2px; }
 </style>
-<script>
-  window.AURA_API_BASE = 'https://aura-backend-production-14ab.up.railway.app/api';
-</script>
 </head>
 <body>
 <div id="app">
@@ -358,13 +360,28 @@
 </div>
 
 <script>
+// ============================================================
+// DEPLOYMENT CONFIG — edit this if your backend isn't on the same
+// host as this page (e.g. deploying frontend/backend as separate
+// Bonto/Vercel/Railway apps). Leave as null for local dev — the
+// fallback below auto-targets <this page's host>:3001/api, which
+// is right for localhost and for same-host EC2/LAN testing, but
+// WRONG once frontend and backend are on separate HTTPS subdomains
+// with no port number, like Bonto. Example for that case:
+//   window.AURA_API_BASE = 'https://aura-backend.bonto.run/api';
+window.AURA_API_BASE = 'https://aura-backend-production-14ab.up.railway.app/api';  // <--- EDIT THIS if your backend is elsewhere
+</script>
+<script>
 /* ============================================================
    AURA — presence-ring avatar, real backend auth, Gemini chat,
    voice-first UI with an optional chat panel.
    ============================================================ */
 
 // Point this at your backend (see /backend/README.md). Defaults to local dev.
-const API_BASE = (window.AURA_API_BASE) || 'https://aura-backend-production-14ab.up.railway.app/api';
+// Defaults to whatever host served this page, port 3001 — so this works unmodified whether
+// you open it as localhost:5500 or as <ec2-ip>:5500 from another machine. Override by setting
+// window.AURA_API_BASE before this script runs, if your backend lives somewhere else entirely.
+const API_BASE = (window.AURA_API_BASE) || `${window.location.protocol}//${window.location.hostname}:3001/api`;
 document.addEventListener('DOMContentLoaded', () => {
   const label = document.getElementById('apiBaseLabel');
   if(label) label.textContent = API_BASE;
@@ -583,7 +600,7 @@ function buildOrbSVG(size, gender, mode){
   const c = ACCENTS[gender] || ACCENTS.other;
   const ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns,'svg');
-  svg.setAttribute('viewBox','0 0 200 200');
+  svg.setAttribute('viewBox','0 0 200 220');
   svg.setAttribute('width', size);
   svg.setAttribute('height', size);
   svg.setAttribute('id','presenceRing');
@@ -592,44 +609,82 @@ function buildOrbSVG(size, gender, mode){
   const uid = 'g'+Math.floor(Math.random()*100000);
   svg.innerHTML = `
     <defs>
-      <radialGradient id="${uid}face" cx="35%" cy="30%" r="75%">
-        <stop offset="0%" stop-color="${c.a}" stop-opacity="0.95"/>
-        <stop offset="100%" stop-color="${c.b}" stop-opacity="0.95"/>
+      <radialGradient id="${uid}skin" cx="35%" cy="25%" r="80%">
+        <stop offset="0%" stop-color="#FCD9BA"/>
+        <stop offset="100%" stop-color="#F0BD93"/>
       </radialGradient>
+      <linearGradient id="${uid}shirt" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${c.a}"/>
+        <stop offset="100%" stop-color="${c.b}"/>
+      </linearGradient>
       <filter id="${uid}glow" x="-60%" y="-60%" width="220%" height="220%">
         <feGaussianBlur stdDeviation="4" result="b"/>
         <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
       </filter>
     </defs>
-    <g id="ringOuter" class="build-el" stroke="${c.a}" fill="none" stroke-width="1.4" opacity="0.55">
-      <circle cx="100" cy="100" r="92" stroke-dasharray="4 10"/>
+    <g id="ringOuter" class="build-el" stroke="${c.a}" fill="none" stroke-width="1.4" opacity="0.5">
+      <circle cx="100" cy="110" r="100" stroke-dasharray="4 10"/>
     </g>
-    <circle id="ringMid" class="build-el" cx="100" cy="100" r="78" fill="none" stroke="${c.a}" stroke-width="2" opacity="0.6" filter="url(#${uid}glow)"/>
-    <circle id="ringPulse" class="build-el" cx="100" cy="100" r="66" fill="none" stroke="${c.b}" stroke-width="2.5" opacity="0.85"/>
-    <circle id="faceBase" class="build-el" cx="100" cy="100" r="56" fill="url(#${uid}face)"/>
-    <g class="build-el">${genderMotif(gender, c)}</g>
-    <g id="face">
-      <circle id="eyeL" class="build-el" cx="82" cy="96" r="4.2" fill="#170F21" opacity="0.85"/>
-      <circle id="eyeR" class="build-el" cx="118" cy="96" r="4.2" fill="#170F21" opacity="0.85"/>
-      <path id="mouth" class="build-el" d="M 84 118 Q 100 124 116 118" stroke="#170F21" stroke-width="3.4" fill="none" stroke-linecap="round" opacity="0.85"/>
-    </g>
+    <circle id="ringMid" class="build-el" cx="100" cy="110" r="86" fill="none" stroke="${c.a}" stroke-width="2" opacity="0.55" filter="url(#${uid}glow)"/>
+    <circle id="ringPulse" class="build-el" cx="100" cy="110" r="74" fill="none" stroke="${c.b}" stroke-width="2.5" opacity="0.8"/>
+    ${characterMarkup(gender, c, uid)}
   `;
   return svg;
 }
 
-function genderMotif(gender, c){
-  // Abstract, tasteful silhouette accents — not literal figures.
+function characterMarkup(gender, c, uid){
+  const skin = `url(#${uid}skin)`;
+  const shirt = `url(#${uid}shirt)`;
+  const hair = '#241A16';
+  // Shared face features — identical layout across genders so the animation math
+  // (mouth, blink) applies uniformly regardless of hairstyle.
+  const base = `
+    <path class="build-el" d="M 86 118 Q 100 128 114 118 L 114 152 Q 100 160 86 152 Z" fill="${skin}"/>
+    <path class="build-el" d="M 58 220 L 58 178 Q 58 150 100 148 Q 142 150 142 178 L 142 220 Z" fill="${shirt}"/>
+    <path class="build-el" d="M 80 150 Q 100 170 120 150 L 120 160 Q 100 178 80 160 Z" fill="rgba(0,0,0,0.16)"/>
+    <ellipse class="build-el" cx="57" cy="88" rx="7" ry="11" fill="${skin}"/>
+    <ellipse class="build-el" cx="143" cy="88" rx="7" ry="11" fill="${skin}"/>
+    <ellipse class="build-el" cx="100" cy="86" rx="44" ry="48" fill="${skin}"/>
+  `;
+  const eyesAndMouth = `
+    <path class="build-el" d="M 99 90 Q 97 95 100 97" stroke="rgba(0,0,0,0.25)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    <g class="build-el avatar-eye"><ellipse cx="80" cy="80" rx="9" ry="7.5" fill="#fff"/><circle cx="80" cy="80" r="5" fill="#3B2A1F"/><circle cx="82" cy="78" r="1.6" fill="#fff"/></g>
+    <g class="build-el avatar-eye"><ellipse cx="120" cy="80" rx="9" ry="7.5" fill="#fff"/><circle cx="120" cy="80" r="5" fill="#3B2A1F"/><circle cx="122" cy="78" r="1.6" fill="#fff"/></g>
+    <path id="mouth" class="build-el" d="M 84 108 Q 100 113 116 108" stroke="#B5776B" stroke-width="4" fill="none" stroke-linecap="round"/>
+  `;
+
   if(gender === 'female'){
-    return `<path d="M 52 78 Q 46 40 100 34 Q 154 40 148 78 Q 150 60 100 56 Q 50 60 52 78 Z" fill="${c.b}" opacity="0.5"/>`;
+    return `
+      <path class="build-el" d="M 46 70 Q 34 140 46 210 L 68 210 Q 58 150 62 78 Z" fill="${hair}"/>
+      <path class="build-el" d="M 154 70 Q 166 140 154 210 L 132 210 Q 142 150 138 78 Z" fill="${hair}"/>
+      ${base}
+      <path class="build-el" d="M 54 76 C 50 32 72 14 102 15 C 130 16 148 34 146 76 C 144 56 132 66 120 48 C 116 60 100 60 96 46 C 88 60 72 58 68 48 C 62 58 56 62 54 76 Z" fill="${hair}"/>
+      <path class="build-el" d="M 70 30 C 82 20 92 17 100 17" stroke="#4A342C" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.5"/>
+      <path class="build-el" d="M 73 62 Q 82 57 91 61" stroke="${hair}" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path class="build-el" d="M 109 61 Q 118 57 127 62" stroke="${hair}" stroke-width="3" fill="none" stroke-linecap="round"/>
+      ${eyesAndMouth}
+    `;
   }
   if(gender === 'male'){
-    return `<path d="M 50 74 Q 52 36 100 32 Q 148 36 150 74 Q 148 52 100 50 Q 52 52 50 74 Z" fill="${c.b}" opacity="0.5"/>`;
+    return `
+      ${base}
+      <path class="build-el" d="M 64 90 Q 60 118 78 134 Q 90 142 100 142 Q 110 142 122 134 Q 140 118 136 90 Q 132 110 118 118 Q 112 100 100 100 Q 88 100 82 118 Q 68 110 64 90 Z" fill="${hair}" opacity="0.94"/>
+      <path class="build-el" d="M 54 74 C 50 34 70 16 100 16 C 130 16 150 34 146 74 C 142 52 128 36 100 36 C 72 36 58 52 54 74 Z" fill="${hair}"/>
+      <path class="build-el" d="M 66 32 C 78 22 90 18 100 18" stroke="#4A3B32" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.55"/>
+      <path class="build-el" d="M 72 64 Q 82 58 92 62" stroke="${hair}" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path class="build-el" d="M 108 62 Q 118 58 128 64" stroke="${hair}" stroke-width="4" fill="none" stroke-linecap="round"/>
+      ${eyesAndMouth}
+    `;
   }
-  return `<g opacity="0.5">
-      <circle cx="100" cy="38" r="4" fill="${c.b}"/>
-      <circle cx="72" cy="46" r="3" fill="${c.b}"/>
-      <circle cx="128" cy="46" r="3" fill="${c.b}"/>
-    </g>`;
+  // other / non-binary — short neutral crop, no beard
+  return `
+    ${base}
+    <path class="build-el" d="M 56 66 Q 52 30 100 24 Q 148 30 144 66 Q 140 44 100 40 Q 60 44 56 66 Z" fill="${hair}"/>
+    <path class="build-el" d="M 68 34 C 80 26 90 23 100 23" stroke="#4A3E38" stroke-width="2.2" fill="none" stroke-linecap="round" opacity="0.5"/>
+    <path class="build-el" d="M 72 63 Q 82 58 92 62" stroke="${hair}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path class="build-el" d="M 108 62 Q 118 58 128 63" stroke="${hair}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    ${eyesAndMouth}
+  `;
 }
 
 /* ---------------- Build sequence: the avatar assembling itself ---------------- */
@@ -646,7 +701,7 @@ function playBuildSequence(user){
     // Shockwave ring + rotating halo layered behind the assembling parts.
     const ns = 'http://www.w3.org/2000/svg';
     const shock = document.createElementNS(ns, 'circle');
-    shock.setAttribute('cx','100'); shock.setAttribute('cy','100');
+    shock.setAttribute('cx','100'); shock.setAttribute('cy','110');
     shock.setAttribute('class','shockwave');
     svg.insertBefore(shock, svg.firstChild.nextSibling);
     svg.querySelector('#ringOuter').classList.add('build-halo');
@@ -733,14 +788,14 @@ function animateOrb(){
       amp = 0.05 + 0.04*Math.sin(breatheT*5);
     }
 
-    if(mid) mid.setAttribute('r', 78 + amp*40);
-    if(pulse) pulse.setAttribute('r', 66 + amp*30);
+    if(mid) mid.setAttribute('r', 86 + amp*40);
+    if(pulse) pulse.setAttribute('r', 74 + amp*30);
     if(mouth){
       const openness = state.convoState==='speaking' ? (6 + amp*40) : 6;
-      mouth.setAttribute('d', `M 84 118 Q 100 ${118+openness} 116 118`);
+      mouth.setAttribute('d', `M 84 108 Q 100 ${108+openness} 116 108`);
     }
     const outer = svgEl.querySelector('#ringOuter');
-    if(outer && !outer.classList.contains('build-halo')){ outer.setAttribute('transform', `rotate(${breatheT*6} 100 100)`); }
+    if(outer && !outer.classList.contains('build-halo')){ outer.setAttribute('transform', `rotate(${breatheT*6} 100 110)`); }
   }
   requestAnimationFrame(animateOrb);
 }
@@ -761,7 +816,6 @@ async function toggleMic(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR) return;
 
-  // Temporarily disabled for mobile testing
 
   recognition = new SR();
   recognition.continuous = false;
@@ -769,6 +823,7 @@ async function toggleMic(){
   recognition.lang = 'en-US';
 
   const input = document.getElementById('chatInput');
+  let capturedFinal = false;
 
   recognition.onstart = () => { listening = true; setConvoState('listening'); };
   recognition.onresult = (event) => {
@@ -779,21 +834,32 @@ async function toggleMic(){
     }
     input.value = (finalText || interim).trim();
     if(finalText.trim()){
+      capturedFinal = true;
       stopListening();
       sendMessage();
     }
   };
- recognition.onerror = (event) => {
-  console.error('Speech recognition error:', event.error);
-  addBubble('assistant', 'Mic error: ' + event.error);
-  stopListening();
-};
-  recognition.onend = () => {
-  if(listening){
-    addBubble('assistant', 'Mic ended without detecting speech (onend fired, no error).');
+  recognition.onerror = (event) => {
+    console.error('[Aura] speech recognition error:', event.error);
     stopListening();
-  }
-};
+    const messages = {
+      'no-speech': "I didn't hear anything — try tapping the mic and speaking right away.",
+      'audio-capture': "No microphone found — check that one's connected and selected.",
+      'not-allowed': "Microphone access is blocked — check the site permission and try again.",
+      'network': "Speech recognition needs an internet connection — check yours and try again.",
+      'aborted': null // user-initiated stop, no message needed
+    };
+    const msg = messages[event.error] !== undefined ? messages[event.error] : `Speech recognition hit an error (${event.error}) — try again.`;
+    if(msg) addBubble('assistant', msg);
+  };
+  recognition.onend = () => {
+    if(listening){
+      stopListening();
+      if(!capturedFinal){
+        addBubble('assistant', "I didn't catch that — try tapping the mic and speaking again, a bit closer to the mic or sooner after tapping.");
+      }
+    }
+  };
 
   recognition.start();
 }
@@ -871,14 +937,23 @@ function pickVoice(gender){
   if(!voices.length) return null;
   const englishVoices = voices.filter(v => v.lang && v.lang.startsWith('en'));
   const pool = englishVoices.length ? englishVoices : voices;
-  const femaleHints = ['female','samantha','victoria','karen','moira','tessa','fiona','zira','susan','allison','ava'];
-  const maleHints = ['male','daniel','alex','fred','oliver','david','george','aaron','arthur'];
+
+  // Edge (and some other browsers) expose high-quality neural voices alongside the
+  // classic robotic OS ones — they're usually named like "Microsoft AriaOnline (Natural)".
+  // Strongly prefer those; they sound genuinely realistic instead of synthetic.
+  const isNatural = v => /natural|online|neural/i.test(v.name);
+  const naturalPool = pool.filter(isNatural);
+  const searchPool = naturalPool.length ? naturalPool : pool;
+
+  const femaleHints = ['aria','jenny','michelle','ana','female','samantha','victoria','karen','moira','tessa','fiona','zira','susan','allison','ava'];
+  const maleHints = ['guy','davis','andrew','brian','christopher','male','daniel','alex','fred','oliver','david','george','aaron','arthur'];
   const hints = gender === 'female' ? femaleHints : gender === 'male' ? maleHints : [];
+
   if(hints.length){
-    const match = pool.find(v => hints.some(h => v.name.toLowerCase().includes(h)));
+    const match = searchPool.find(v => hints.some(h => v.name.toLowerCase().includes(h)));
     if(match) return match;
   }
-  return pool[0];
+  return searchPool[0] || pool[0];
 }
 function speak(text){
   if(!('speechSynthesis' in window)){ setConvoState('idle'); return; }
@@ -887,13 +962,28 @@ function speak(text){
   const voice = pickVoice(state.user?.gender);
   if(voice) utter.voice = voice;
   utter.rate = 1.0;
-  utter.pitch = state.user?.gender === 'female' ? 1.05 : state.user?.gender === 'male' ? 0.95 : 1.0;
+  // Natural/neural voices already carry correct gender and pitch — shifting pitch on top
+  // of them introduces artifacts. Only nudge pitch for the classic robotic fallback voices.
+  const usingNaturalVoice = voice && /natural|online|neural/i.test(voice.name);
+  utter.pitch = usingNaturalVoice ? 1.0 : (state.user?.gender === 'female' ? 1.05 : state.user?.gender === 'male' ? 0.95 : 1.0);
   utter.onstart = () => setConvoState('speaking');
   utter.onend = () => setConvoState('idle');
   utter.onerror = () => setConvoState('idle');
   window.speechSynthesis.speak(utter);
 }
-if('speechSynthesis' in window){ window.speechSynthesis.onvoiceschanged = () => {}; }
+function primeVoices(){
+  // Voice lists load asynchronously in some browsers — the very first speak() call can
+  // otherwise see an empty list. This warms it up and logs what's available, which is
+  // handy for checking whether any "Natural"/"Online" voices exist on this machine.
+  const voices = window.speechSynthesis.getVoices();
+  if(voices.length){
+    console.log('[Aura] voices available:', voices.map(v => v.name));
+  }
+}
+if('speechSynthesis' in window){
+  primeVoices();
+  window.speechSynthesis.onvoiceschanged = primeVoices;
+}
 </script>
 </body>
 </html>
